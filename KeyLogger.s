@@ -1,4 +1,4 @@
-.section .data
+.section .rodata
 # Table of the keyboard
 keys:
     .fill 256, 1, 0
@@ -175,6 +175,10 @@ keys:
     .org keys+57
     .byte 0x20
 
+.section .data
+    file: .string "/dev/input/event0"
+
+    buffer: .skip 256, 0
 
 .section .text
 
@@ -185,7 +189,13 @@ main:
     pushq %rbp
     movq %rsp, %rbp  
 
-    
+    # open the event0 file
+    movq $2, %rax
+    movq $file, %rdi
+    movq $0400, %rsi
+    syscall
+
+    pushq %rax  #save the file descriptor in the stack
 
     movq %rbp, %rsp
     popq %rbp
