@@ -177,3 +177,18 @@ keys:
 
 
 .section .text
+
+.globl main
+.type	main, @function 
+main:
+    # Enter
+    pushq %rbp
+    movq %rsp, %rbp  
+
+    
+
+    movq %rbp, %rsp
+    popq %rbp
+    
+    movq $60, %rax
+    syscall
